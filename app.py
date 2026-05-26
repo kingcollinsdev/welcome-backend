@@ -77,13 +77,40 @@ def delete_item(item_id):
 
     connection.execute(
         "DELETE FROM items WHERE id = ?",
-        (item_id),
+        (item_id,),
     )
 
     connection.commit()
     connection.close()
 
     return jsonify({"message": "Item deleted successfully"})
+
+
+@app.route("/items/<int:item_id>", methods=["PUT"])
+def update_item(item_id):
+    data = request.get_json()
+
+    connection = get_db_connection()
+
+    connection.execute(
+        """
+        UPDATE items
+        SET name = ?, category = ?, minimum_required = ?, location = ?
+        WHERE id = ?
+        """,
+        (
+            data["name"],
+            data["category"],
+            data["minimumRequired"],
+            data["location"],
+            item_id,
+        ),
+    )
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Item updated successfully"})
 
 
 if __name__ == "__main__":
