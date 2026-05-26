@@ -70,6 +70,32 @@ def update_quantity(item_id):
 
     return jsonify({"message": "Quantity updated successfully"})
 
+@app.route("/items/<int:item_id>", methods=["PUT"])
+def update_item(item_id):
+    data = request.get_json()
+
+    connection = get_db_connection()
+
+    connection.execute(
+        """
+        UPDATE items
+        SET name = ?, category = ?, minimum_required = ?, location = ?
+        WHERE id = ?
+        """,
+        (
+            data["name"],
+            data["category"],
+            data["minimumRequired"],
+            data["location"],
+            item_id,
+        ),
+    )
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Item updated successfully"})
+
 #DELETE: delete item
 @app.route("/items/<int:item_id>", methods=["DELETE"])
 def delete_item(item_id):
