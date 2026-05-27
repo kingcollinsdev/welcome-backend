@@ -16,6 +16,14 @@ CREATE TABLE IF NOT EXISTS items (
 """)
 
 cursor.execute("""
+CREATE TABLE IF NOT EXISTS activities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+
+cursor.execute("""
 INSERT INTO items (
     name,
     category,
@@ -31,6 +39,7 @@ VALUES (
     'Ushering Cabinet'
 )
 """)
+
 
 
 connection.commit()

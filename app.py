@@ -1,6 +1,7 @@
 import sqlite3
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import database
 
 app = Flask(__name__)
 CORS(app)
@@ -9,6 +10,17 @@ def get_db_connection():
     connection = sqlite3.connect("inventory.db")
     connection.row_factory = sqlite3.Row
     return connection
+
+def log_activity(message):
+    connection = get_db_connection()
+
+    connection.execute(
+        "INSERT INTO activities (message) VALUES (?)",
+        (message,),
+    )
+
+    connection.commit()
+    connection.close()
 
 @app.route("/")
 def home():
@@ -47,6 +59,8 @@ def add_item():
     connection.commit()
     connection.close()
 
+    log_activity(f"Added {data['name']}")
+
     return jsonify({"message": "Item added successfully"}), 201
 
 #UPDATE: update quantity
@@ -55,6 +69,11 @@ def update_quantity(item_id):
     data = request.get_json()
 
     connection = get_db_connection()
+
+    item = connection.execute(
+    "SELECT * FROM items WHERE id = ?",
+    (item_id,),
+    ).fetchone()
 
     connection.execute(
         """
@@ -67,6 +86,8 @@ def update_quantity(item_id):
 
     connection.commit()
     connection.close()
+
+    log_activity(f"Updated quantity for {item['name']}")
 
     return jsonify({"message": "Quantity updated successfully"})
 
@@ -94,12 +115,19 @@ def update_item(item_id):
     connection.commit()
     connection.close()
 
+    log_activity(f"Updated {data['name']}")
+
     return jsonify({"message": "Item updated successfully"})
 
 #DELETE: delete item
 @app.route("/items/<int:item_id>", methods=["DELETE"])
 def delete_item(item_id):
     connection = get_db_connection()
+
+    item = connection.execute(
+    "SELECT * FROM items WHERE id = ?",
+    (item_id,),
+    ).fetchone()
 
     connection.execute(
         "DELETE FROM items WHERE id = ?",
@@ -109,7 +137,29 @@ def delete_item(item_id):
     connection.commit()
     connection.close()
 
+    log_activity(f"Deleted {item['name']}")
+
     return jsonify({"message": "Item deleted successfully"})
+
+@app.route("/activities")
+def get_activities():
+    connection = get_db_connection()
+
+    activities = connection.execute(
+        """
+        SELECT *
+        FROM activities
+        ORDER BY created_at DESC
+        LIMIT 10
+        """
+    ).fetchall()
+
+    connection.close()
+
+    return jsonify([
+        dict(activity)
+        for activity in activities
+    ])
 
 
 
