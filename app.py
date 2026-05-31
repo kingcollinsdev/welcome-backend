@@ -1,7 +1,10 @@
 import sqlite3
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import database
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
 CORS(app)
@@ -160,6 +163,70 @@ def get_activities():
         dict(activity)
         for activity in activities
     ])
+
+
+@app.route("/reports/inventory")
+def generate_inventory_report():
+    connection = get_db_connection()
+
+    items = connection.execute(
+        "SELECT * FROM items ORDER BY category, name"
+    ).fetchall()
+
+    connection.close()
+
+    buffer = io.BytesIO()
+
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    y = height - 60
+
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.drawString(50, y, "Welcome Home Inventory Report")
+
+    y -= 30
+
+    pdf.setFont("Helvetica", 10)
+    pdf.drawString(50, y, "Generated inventory overview for the welcome home team.")
+
+    y -= 40
+
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(50, y, "Item")
+    pdf.drawString(200, y, "Category")
+    pdf.drawString(320, y, "Qty")
+    pdf.drawString(370, y, "Minimum")
+    pdf.drawString(450, y, "Location")
+
+    y -= 20
+
+    pdf.setFont("Helvetica", 10)
+
+    for item in items:
+        if y < 60:
+            pdf.showPage()
+            y = height - 60
+            pdf.setFont("Helvetica", 10)
+
+        pdf.drawString(50, y, str(item["name"]))
+        pdf.drawString(200, y, str(item["category"]))
+        pdf.drawString(320, y, str(item["quantity"]))
+        pdf.drawString(370, y, str(item["minimum_required"]))
+        pdf.drawString(450, y, str(item["location"]))
+
+        y -= 20
+
+    pdf.save()
+
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="welcome-home-inventory-report.pdf",
+        mimetype="application/pdf",
+    )
 
 
 
